@@ -1,9 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Alert, BackHandler } from 'react-native';
+import * as Linking from 'expo-linking';
+import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
+import { supabase } from '../lib/supabase';
 // Utils
 import { registerForPushNotificationsAsync } from '../utils/notificationHelper';
 import { messaging, getToken, VAPID_KEY } from '../lib/firebase';
 import { Platform } from 'react-native';
+
+// Services
+import { companiesService, Company } from '../services/companiesService';
+import { profilesService, Profile } from '../services/profilesService';
+import { mailService } from '../services/mailService';
+import { storageService } from '../services/storageService';
+import { masterSendersService } from '../services/masterSendersService';
+import { recognizeText, MailType, classifyMail, preprocessImage as ocrPreprocess } from '../services/ocrService';
+
 
 export type AppMode = 'landing' | 'admin_login' | 'admin_branch_select' | 'admin_dashboard' | 'admin_register_mail' | 'tenant_login' | 'tenant_dashboard';
 
