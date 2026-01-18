@@ -382,12 +382,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 });
             }
 
-            // --- Web Push (Firebase) ---
+            // --- Web Push (Vercel Serverless Function) ---
             if (matchedProfile.web_push_token) {
-                // 이 부분은 보안상 서버 사이드(Edge Function)에서 처리하는 것이 좋지만, 
-                // 일단 테스트를 위해 직접 호출을 시도하거나 구조를 잡아둡니다.
-                // 참고: Firebase Admin SDK가 필요할 수 있으므로, 실제 운영 어드민 패널에서 처리 권장.
-                console.log("Web push should be sent to:", matchedProfile.web_push_token);
+                try {
+                    const pushPayload = {
+                        token: matchedProfile.web_push_token,
+                        title: `[${selectedCompany.name}] 우편물 도착 📮`,
+                        body: `${detectedSender ? `${detectedSender}에서 보낸 ` : ''}${detectedMailType} 우편물이 도착했습니다.`,
+                        data: {
+                            company_id: selectedCompany.id,
+                            click_action: `https://postnoti-app.vercel.app/branch/${selectedCompany.slug}`
+                        }
+                    };
+
+                    // 우리가 방금 만든 Vercel API 서버를 호출합니다.
+                    await fetch('/api/send-push', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(pushPayload)
+                    });
+                    console.log("Web push requested via API for:", matchedProfile.name);
+                } catch (e) {
+                    console.error("Web push API call failed", e);
+                }
             }
 
             Alert.alert('완료', `${matchedProfile.name}님께 알림을 보냈습니다.`);
