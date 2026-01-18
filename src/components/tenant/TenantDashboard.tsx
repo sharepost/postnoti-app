@@ -623,6 +623,14 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                 transparent={true}
                 animationType="fade"
                 onRequestClose={() => setSelectedMailImage(null)}
+                // Android Back Button safety
+                onShow={() => {
+                    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+                        setSelectedMailImage(null);
+                        return true;
+                    });
+                    return () => subscription.remove();
+                }}
             >
                 <View style={styles.modalContainer}>
                     <Pressable style={styles.closeButton} onPress={() => setSelectedMailImage(null)}>
@@ -635,10 +643,14 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.zoomWrapper}
                     >
-                        <Image
-                            source={{ uri: selectedMailImage || '' }}
-                            style={styles.modalImage}
-                            resizeMode="contain"
+                        {selectedMailImage && (
+                            <Image
+                                source={{ uri: selectedMailImage }}
+                                style={styles.modalImage}
+                                resizeMode="contain"
+                            />
+                        )}
+                        resizeMode="contain"
                         />
                     </ScrollView>
                     <View style={styles.zoomFooter}>
