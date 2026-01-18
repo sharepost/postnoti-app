@@ -405,24 +405,32 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
     }
 
     const handleLogout = async () => {
-        Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
-            { text: '취소', style: 'cancel' },
-            {
-                text: '로그아웃',
-                style: 'destructive',
-                onPress: async () => {
-                    try {
-                        await AsyncStorage.removeItem(`tenant_name_${companyId}`);
-                        await AsyncStorage.removeItem(`tenant_phone_${companyId}`);
-                        setMyProfile(null);
-                        setName('');
-                        setPhoneSuffix('');
-                    } catch (e) {
-                        console.error('Logout failed', e);
-                    }
-                }
+        const performLogout = async () => {
+            try {
+                await AsyncStorage.removeItem(`tenant_name_${companyId}`);
+                await AsyncStorage.removeItem(`tenant_phone_${companyId}`);
+                setMyProfile(null);
+                setName('');
+                setPhoneSuffix('');
+            } catch (e) {
+                console.error('Logout failed', e);
             }
-        ]);
+        };
+
+        if (Platform.OS === 'web') {
+            if (window.confirm('로그아웃 하시겠습니까?')) {
+                performLogout();
+            }
+        } else {
+            Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
+                { text: '취소', style: 'cancel' },
+                {
+                    text: '로그아웃',
+                    style: 'destructive',
+                    onPress: performLogout
+                }
+            ]);
+        }
     };
 
     const requestNotificationPermission = async () => {

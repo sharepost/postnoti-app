@@ -316,15 +316,18 @@ export const AdminDashboardScreen = () => {
                                 <View style={appStyles.menuBtnTextGroup}>
                                     <Text style={[appStyles.menuBtnLabel, { color: '#4F46E5' }]}>입주자 전용 링크</Text>
                                     <Text style={appStyles.menuBtnDesc} numberOfLines={1}>
-                                        {__DEV__ ? 'http://localhost:8082' : 'https://postnoti.vercel.app'}/branch/{selectedCompany?.slug}
+                                        https://postnoti-app.vercel.app/branch/{selectedCompany?.slug}
                                     </Text>
                                 </View>
                                 <Pressable
                                     onPress={async () => {
-                                        const baseUrl = __DEV__ ? 'http://localhost:8082' : 'https://postnoti.vercel.app';
-                                        await Clipboard.setStringAsync(`${baseUrl}/branch/${selectedCompany?.slug}`);
-                                        // Alert not available here easily? Use RN Alert
-                                        // console.log('Copied');
+                                        const url = `https://postnoti-app.vercel.app/branch/${selectedCompany?.slug}`;
+                                        await Clipboard.setStringAsync(url);
+                                        // Alert needs to be imported from react-native if not already available in scope, 
+                                        // but AdminDashboardScreen has it imported.
+                                        // Using global Alert or imported Alert
+                                        const { Alert } = require('react-native');
+                                        Alert.alert('복사 완료', `링크가 복사되었습니다.\n${url}`);
                                     }}
                                     style={{ backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}
                                 >

@@ -85,7 +85,7 @@ interface AppContextType {
     handleBranchSelect: (company: Company) => Promise<void>;
     runOCR: (uri: string) => Promise<void>;
     handleRegisterMail: () => Promise<void>;
-    copyTenantLink: (company: Company) => void;
+    // copyTenantLink removed
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -226,17 +226,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // --- Actions --- (handleBranchSelect has been moved and optimized)
 
 
-    const copyTenantLink = (company: Company) => {
-        const webLink = `https://postnoti-app.vercel.app/branch/${company.slug}`;
-        const appLink = `postnoti://branch/${company.slug}`;
-
-        // 웹 링크를 기본으로 클립보드에 복사
-        Clipboard.setStringAsync(webLink);
-        Alert.alert(
-            '복사 완료',
-            `${company.name} 입주사용 배포 링크가 복사되었습니다.\n\n웹: ${webLink}\n앱: ${appLink}`
-        );
-    };
+    // copyTenantLink removed - logic moved to AdminDashboardScreen menu
 
     // OCR Logic Helper
     const findMatch = (text: string, excludeSender?: string) => {
@@ -405,7 +395,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 handleBranchSelect,
                 runOCR,
                 handleRegisterMail,
-                copyTenantLink
+                // copyTenantLink removed
             }}
         >
             {children}
