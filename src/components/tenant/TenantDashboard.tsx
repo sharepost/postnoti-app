@@ -396,13 +396,14 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
     const requestNotificationPermission = async () => {
         if (Platform.OS !== 'web') return;
 
+        // 브라우저 권한 객체 체크
         if (typeof Notification === 'undefined') {
-            Alert.alert('오류', '이 브라우저는 알림 기능을 지원하지 않습니다.');
+            window.alert('이 브라우저/기기는 알림 기능을 지원하지 않습니다.\n아이폰이라면 반드시 "홈 화면에 추가"를 먼저 해주세요!');
             return;
         }
 
         if (!messaging) {
-            Alert.alert('오류', '알림 엔진이 초기화되지 않았습니다. (HTTPS 환경인지 확인해주세요)');
+            window.alert('알림 엔진 준비 중... 인터넷 연결을 확인하고 다시 시도해주세요.');
             return;
         }
 
@@ -411,22 +412,22 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
             const permission = await Notification.requestPermission();
 
             if (permission === 'granted') {
-                console.log("Permission granted. Getting token...");
+                window.alert('권한 허용됨! 기기 정보를 등록합니다...');
                 const token = await getToken(messaging, { vapidKey: VAPID_KEY });
 
                 if (token && myProfile?.id) {
                     await profilesService.updateProfile(myProfile.id, { web_push_token: token });
-                    Alert.alert('알림 설정 완료', '이제 실시간으로 우편 도착 알림을 받으실 수 있습니다.');
+                    window.alert('✅ 알림 설정 완료!\n이제 우편물이 오면 스마트폰으로 알려드립니다.');
                     setMyProfile({ ...myProfile, web_push_token: token });
                 } else {
-                    Alert.alert('오류', '알림 토큰을 생성하지 못했습니다.');
+                    window.alert('신분증(토큰)을 가져오지 못했습니다. 잠시 후 새로고침 해주세요.');
                 }
-            } else {
-                Alert.alert('알림 거부됨', '브라우저 설정에서 알림 권한을 직접 허용해주세요.');
+            } else if (permission === 'denied') {
+                window.alert('알림 권한이 차단되어 있습니다.\n설정에서 알림을 허용으로 바꿔주세요.');
             }
         } catch (error: any) {
-            console.error('Error requesting notification permission:', error);
-            Alert.alert('오류', `알림 설정 중 에러가 발생했습니다: ${error?.message || '알 수 없는 오류'}`);
+            console.error('Error:', error);
+            window.alert('설정 중 오류: ' + (error?.message || '알 수 없는 에러'));
         }
     };
 
