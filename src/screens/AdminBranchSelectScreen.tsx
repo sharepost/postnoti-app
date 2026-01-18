@@ -4,6 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useNavigation } from '@react-navigation/native';
 import { AppHeader } from '../components/common/AppHeader';
 import { CompanyManagement } from '../components/admin/CompanyManagement';
+import { CompanyManagementWithList } from '../components/admin/CompanyManagementWithList';
 import { appStyles } from '../styles/appStyles';
 import { useAppContent } from '../contexts/AppContext';
 import { Company } from '../services/companiesService';
@@ -87,8 +88,8 @@ export const AdminBranchSelectScreen = () => {
             {/* 지점 관리 모달 */}
             <Modal visible={isAdminMgmtVisible} animationType="slide">
                 <SafeAreaView style={{ flex: 1 }}>
-                    <AppHeader title="지점 추가/삭제" onBack={() => { setIsAdminMgmtVisible(false); loadData(); }} />
-                    <CompanyManagement
+                    <CompanyManagementWithList
+                        companies={companies}
                         onComplete={() => { setIsAdminMgmtVisible(false); loadData(); }}
                         onCancel={() => setIsAdminMgmtVisible(false)}
                     />

@@ -315,25 +315,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             setOcrLoading(true);
 
-            // Upload images to Supabase Storage (with fallback to local URIs)
-            let uploadedMainImage = selectedImage || '';
-            if (selectedImage) {
-                const uploaded = await storageService.uploadImage(selectedImage);
-                if (uploaded) {
-                    uploadedMainImage = uploaded;
-                } else {
-                    // Upload failed, but keep local URI for admin view
-                    console.warn('⚠️ 이미지 업로드 실패. 로컬 경로로 저장합니다.');
-                }
-            }
+            // TEMPORARY: Save local URIs directly (Supabase Storage 설정 후 활성화 예정)
+            const uploadedMainImage = selectedImage || '';
+            const uploadedExtraImages: string[] = extraImages || [];
 
-            const uploadedExtraImages: string[] = [];
-            if (extraImages && extraImages.length > 0) {
-                for (const img of extraImages) {
-                    const uploaded = await storageService.uploadImage(img);
-                    uploadedExtraImages.push(uploaded || img); // Fallback to original URI
-                }
-            }
+            // TODO: Supabase Storage 버킷 생성 후 아래 코드로 교체
+            // let uploadedMainImage = selectedImage || '';
+            // if (selectedImage) {
+            //     const uploaded = await storageService.uploadImage(selectedImage);
+            //     uploadedMainImage = uploaded || selectedImage;
+            // }
+            // const uploadedExtraImages: string[] = [];
+            // if (extraImages && extraImages.length > 0) {
+            //     for (const img of extraImages) {
+            //         const uploaded = await storageService.uploadImage(img);
+            //         uploadedExtraImages.push(uploaded || img);
+            //     }
+            // }
 
             await mailService.registerMail(
                 selectedCompany.id,
