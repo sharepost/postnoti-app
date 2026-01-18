@@ -327,18 +327,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 const title = `[${selectedCompany.name}] 우편물 도착 📮`;
                 const body = `${detectedSender ? `${detectedSender}에서 보낸 ` : ''}${detectedMailType} 우편물이 도착했습니다.`;
 
+                // Prioritize Native Push (Expo/FCM) if available to avoid duplicates on mobile
                 if (matchedProfile.push_token) {
                     fetch('https://exp.host/--/api/v2/push/send', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ to: matchedProfile.push_token, sound: 'default', title, body })
+                        body: JSON.stringify({ to: matchedProfile.push_token, sound: 'default', title, body, data: { url: `postnoti://branch/${selectedCompany.slug}` } })
                     }).catch(() => { });
-                }
-                if (matchedProfile.web_push_token) {
+                } else if (matchedProfile.web_push_token) {
+                    // Send Web Push only if Native Push is not available
                     fetch('https://postnoti-app.vercel.app/api/send-push', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: matchedProfile.web_push_token, title, body, data: { company_id: selectedCompany.id } })
+                        body: JSON.stringify({
+                            token: matchedProfile.web_push_token,
+                            title,
+                            body,
+                            data: {
+                                company_id: selectedCompany.id,
+                                url: `https://postnoti-app.vercel.app/branch/${selectedCompany.slug}`
+                            }
+                        })
                     }).catch(() => { });
                 }
             };

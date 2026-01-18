@@ -100,10 +100,72 @@ export const TenantMailHistory = ({ profile, onClose, isTenantMode = false }: Te
                             )}
 
                             <View style={styles.info}>
-                                <Text style={styles.senderLabel}>보낸 분</Text>
-                                <Text style={styles.sender}>
-                                    {mail.ocr_content || '(발신처 미상)'}
-                                </Text>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.senderLabel}>보낸 분</Text>
+                                        <Text style={styles.sender}>
+                                            {mail.ocr_content || '(발신처 미상)'}
+                                        </Text>
+                                    </View>
+                                    {!isTenantMode && (
+                                        <Pressable
+                                            style={styles.resendBtn}
+                                            onPress={() => {
+                                                if (!profile.push_token && !profile.web_push_token) {
+                                                    Alert.alert('알림 불가', '이 입주민은 알림 수신 설정이 되어있지 않습니다.');
+                                                    return;
+                                                }
+
+                                                Alert.alert('알림 재발송', `${profile.name}님께 알림을 다시 보내시겠습니까?`, [
+                                                    { text: '취소', style: 'cancel' },
+                                                    {
+                                                        text: '보내기',
+                                                        onPress: async () => {
+                                                            const title = `[우편물 도착] ${mail.mail_type} 알림 재발송 🔔`;
+                                                            const sender = mail.ocr_content || '발신처';
+                                                            const body = `${sender}에서 보낸 ${mail.mail_type} 우편물이 도착했습니다. (관리자 재발송)`;
+
+                                                            try {
+                                                                if (profile.push_token) {
+                                                                    await fetch('https://exp.host/--/api/v2/push/send', {
+                                                                        method: 'POST',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({
+                                                                            to: profile.push_token,
+                                                                            sound: 'default',
+                                                                            title,
+                                                                            body,
+                                                                            data: { url: `postnoti://branch` } // Cannot easily determine slug here without join, defaulting to app open
+                                                                        })
+                                                                    });
+                                                                } else if (profile.web_push_token) {
+                                                                    await fetch('https://postnoti-app.vercel.app/api/send-push', {
+                                                                        method: 'POST',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({
+                                                                            token: profile.web_push_token,
+                                                                            title,
+                                                                            body,
+                                                                            data: {
+                                                                                company_id: mail.company_id,
+                                                                                url: `https://postnoti-app.vercel.app/branch` // Defaulting to root branch select if slug unknown
+                                                                            }
+                                                                        })
+                                                                    });
+                                                                }
+                                                                Alert.alert('성공', '알림을 재발송했습니다.');
+                                                            } catch (e) {
+                                                                Alert.alert('실패', '알림 발송 중 오류가 발생했습니다.');
+                                                            }
+                                                        }
+                                                    }
+                                                ]);
+                                            }}
+                                        >
+                                            <Text style={styles.resendBtnText}>🔔 재발송</Text>
+                                        </Pressable>
+                                    )}
+                                </View>
                             </View>
 
                             {/* 프리미엄 추가 촬영 이미지들 */}
@@ -194,5 +256,9 @@ const styles = StyleSheet.create({
     closeArea: { position: 'absolute', top: 50, right: 20, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20 },
     closeText: { color: '#fff', fontSize: 16, fontWeight: '700' },
     zoomFooter: { position: 'absolute', bottom: 40, width: '100%', alignItems: 'center' },
-    zoomFooterText: { color: '#fff', fontSize: 12, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 }
+    zoomFooterText: { color: '#fff', fontSize: 12, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
+
+    // 재발송 버튼 스타일
+    resendBtn: { backgroundColor: '#EEF2FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#C7D2FE' },
+    resendBtnText: { color: '#4F46E5', fontSize: 13, fontWeight: '700' }
 });

@@ -16,7 +16,6 @@ export const AdminBranchSelectScreen = () => {
         handleBranchSelect,
         isAdminMgmtVisible,
         setIsAdminMgmtVisible,
-        copyTenantLink,
         ocrLoading
     } = useAppContent();
 
@@ -79,12 +78,7 @@ export const AdminBranchSelectScreen = () => {
                                 <Text style={appStyles.branchNameText}>{c.name}</Text>
                                 <Text style={appStyles.branchHintText}>관리 대시보드 바로가기</Text>
                             </View>
-                            <Pressable
-                                onPress={() => copyTenantLink(c)}
-                                style={appStyles.minimalLinkBtn}
-                            >
-                                <Text style={appStyles.minimalLinkBtnText}>링크 본사</Text>
-                            </Pressable>
+                            {/* Link Copy removed for unification */}
                         </View>
                     </Pressable>
                 ))}
