@@ -251,9 +251,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const copyTenantLink = (company: Company) => {
-        const link = `postnoti://branch/${company.slug}`;
-        Clipboard.setStringAsync(link);
-        Alert.alert('복사 완료', `${company.name} 입주사용 링크가 복사되었습니다.\n\n${link}`);
+        const webLink = `https://postnoti-app.vercel.app/branch/${company.slug}`;
+        const appLink = `postnoti://branch/${company.slug}`;
+
+        // 웹 링크를 기본으로 클립보드에 복사
+        Clipboard.setStringAsync(webLink);
+        Alert.alert(
+            '복사 완료',
+            `${company.name} 입주사용 배포 링크가 복사되었습니다.\n\n웹: ${webLink}\n앱: ${appLink}`
+        );
     };
 
     // OCR Logic Helper
