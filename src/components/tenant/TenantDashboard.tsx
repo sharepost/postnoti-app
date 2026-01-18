@@ -304,7 +304,12 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                         try {
                             const parsed = JSON.parse(item.extra_images);
                             if (Array.isArray(parsed)) images = parsed;
-                        } catch (e) { }
+                        } catch (e) {
+                            // If it's a string but not JSON (maybe a single URL?), wrap in array if it looks like a URL
+                            if (item.extra_images.startsWith('http')) {
+                                images = [item.extra_images];
+                            }
+                        }
                     }
 
                     if (images.length === 0) return null;
@@ -317,7 +322,6 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                                         key={idx}
                                         onPress={() => {
                                             setSelectedMailImage(img);
-                                            // 읽음 처리는 하지 않음 (이미 메인 터치 시 처리됨 or 명시적 처리 필요 시 추가)
                                         }}
                                     >
                                         <Image source={{ uri: img }} style={{ width: 60, height: 60, borderRadius: 8, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' }} resizeMode="cover" />

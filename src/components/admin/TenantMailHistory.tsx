@@ -135,6 +135,20 @@ export const TenantMailHistory = ({ profile, onClose, isTenantMode = false }: Te
                                                             const sender = mail.ocr_content || '발신처';
                                                             const body = `${sender}에서 보낸 ${mail.mail_type} 우편물이 도착했습니다. (관리자 재발송)`;
 
+                                                            // Fetch company slug
+                                                            let companySlug = '';
+                                                            try {
+                                                                const { data: compData } = await supabase
+                                                                    .from('companies')
+                                                                    .select('slug')
+                                                                    .eq('id', mail.company_id)
+                                                                    .single();
+                                                                if (compData) companySlug = compData.slug;
+                                                            } catch (e) { }
+
+                                                            const deepLinkUrl = companySlug ? `postnoti://branch/${companySlug}` : 'postnoti://branch';
+                                                            const webLinkUrl = companySlug ? `https://postnoti-app.vercel.app/branch/${companySlug}` : 'https://postnoti-app.vercel.app/branch';
+
                                                             try {
                                                                 if (targetProfile.push_token) {
                                                                     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -145,7 +159,7 @@ export const TenantMailHistory = ({ profile, onClose, isTenantMode = false }: Te
                                                                             sound: 'default',
                                                                             title,
                                                                             body,
-                                                                            data: { url: `postnoti://branch` }
+                                                                            data: { url: deepLinkUrl }
                                                                         })
                                                                     });
                                                                 } else if (targetProfile.web_push_token) {
@@ -158,7 +172,7 @@ export const TenantMailHistory = ({ profile, onClose, isTenantMode = false }: Te
                                                                             body,
                                                                             data: {
                                                                                 company_id: mail.company_id,
-                                                                                url: `https://postnoti-app.vercel.app/branch`
+                                                                                url: webLinkUrl
                                                                             }
                                                                         })
                                                                     });
