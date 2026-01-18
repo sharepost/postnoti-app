@@ -315,23 +315,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             setOcrLoading(true);
 
-            // TEMPORARY: Save local URIs directly (Supabase Storage 설정 후 활성화 예정)
+            // Convert main image to Base64 (already done in runOCR)
             const uploadedMainImage = selectedImage || '';
-            const uploadedExtraImages: string[] = extraImages || [];
 
-            // TODO: Supabase Storage 버킷 생성 후 아래 코드로 교체
-            // let uploadedMainImage = selectedImage || '';
-            // if (selectedImage) {
-            //     const uploaded = await storageService.uploadImage(selectedImage);
-            //     uploadedMainImage = uploaded || selectedImage;
-            // }
-            // const uploadedExtraImages: string[] = [];
-            // if (extraImages && extraImages.length > 0) {
-            //     for (const img of extraImages) {
-            //         const uploaded = await storageService.uploadImage(img);
-            //         uploadedExtraImages.push(uploaded || img);
-            //     }
-            // }
+            // Convert extra images to Base64 for cross-device compatibility
+            const uploadedExtraImages: string[] = [];
+            if (extraImages && extraImages.length > 0) {
+                for (const img of extraImages) {
+                    try {
+                        const processed = await ocrPreprocess(img);
+                        uploadedExtraImages.push(processed.data); // Base64 data
+                    } catch (e) {
+                        console.warn('Failed to process extra image:', e);
+                        uploadedExtraImages.push(img); // Fallback to original
+                    }
+                }
+            }
 
             await mailService.registerMail(
                 selectedCompany.id,
