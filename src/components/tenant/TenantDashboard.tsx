@@ -11,6 +11,8 @@ import { supabase } from '../../lib/supabase';
 import { mailService } from '../../services/mailService';
 import { profilesService, Profile } from '../../services/profilesService';
 import { PrimaryButton } from '../common/PrimaryButton';
+import { messaging, getToken, VAPID_KEY } from '../../lib/firebase';
+import { Platform } from 'react-native';
 
 type Props = {
     companyId: string;
@@ -391,6 +393,28 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
         );
     }
 
+    const requestNotificationPermission = async () => {
+        if (Platform.OS === 'web' && messaging) {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+                    if (token && myProfile?.id) {
+                        await profilesService.updateProfile(myProfile.id, { web_push_token: token });
+                        Alert.alert('알림 설정 완료', '이제 실시간으로 우편 도착 알림을 받으실 수 있습니다.');
+                        // 강제 리프레시를 위해 상태 업데이트
+                        setMyProfile({ ...myProfile, web_push_token: token });
+                    }
+                } else {
+                    Alert.alert('알림 거부됨', '설정에서 알림 권한을 허용해주셔야 알림을 받으실 수 있습니다.');
+                }
+            } catch (error) {
+                console.error('Error requesting notification permission:', error);
+                Alert.alert('오류', '알림 설정을 하는 중 문제가 발생했습니다.');
+            }
+        }
+    };
+
 
     // 필터링 및 정렬 로직
     const filteredMails = mails.filter(mail => {
@@ -422,12 +446,28 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                 </Pressable>
             </View>
 
+            {/* 알림 권한 유도 배너 (토큰이 없을 때만 표시) */}
+            {Platform.OS === 'web' && !myProfile.web_push_token && (
+                <View style={[styles.installBanner, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={[styles.installBannerTitle, { color: '#6D28D9' }]}>🔔 알림이 꺼져 있습니다</Text>
+                        <Text style={[styles.installBannerDesc, { color: '#7C3AED' }]}>알림을 켜고 우편물 소식을 실시간으로 받으세요.</Text>
+                    </View>
+                    <Pressable
+                        style={[styles.installButton, { backgroundColor: '#7C3AED' }]}
+                        onPress={requestNotificationPermission}
+                    >
+                        <Text style={styles.installButtonText}>알림 켜기</Text>
+                    </Pressable>
+                </View>
+            )}
+
             {/* PWA 설치 유도 배너 */}
             {showInstallBanner && (
                 <View style={styles.installBanner}>
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.installBannerTitle}>🔔 실시간 우편 알림 받기</Text>
-                        <Text style={styles.installBannerDesc}>앱으로 설치하시면 우편 도착 알림을 드려요.</Text>
+                        <Text style={styles.installBannerTitle}>📱 홈 화면에 앱 설치</Text>
+                        <Text style={styles.installBannerDesc}>바탕화면에 앱을 만들어 더 편하게 사용하세요.</Text>
                     </View>
                     <Pressable style={styles.installButton} onPress={handleInstallPrompt}>
                         <Text style={styles.installButtonText}>설치하기</Text>
