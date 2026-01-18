@@ -78,6 +78,8 @@ interface AppContextType {
     extraImages: string[];
     setExtraImages: (imgs: string[]) => void;
 
+    isRefreshing: boolean;
+
     // Actions
     loadData: () => Promise<void>;
     handleBranchSelect: (company: Company) => Promise<void>;
@@ -128,8 +130,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     // --- Effects ---
 
-    const loadData = async () => {
+    // --- UI/Loading States ---
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const loadInitialData = async () => {
         try {
+            // 병렬로 초기 필수 데이터만 로드
             const [compList, senders] = await Promise.all([
                 companiesService.getCompanies(),
                 masterSendersService.getAllSenders()
@@ -138,86 +145,86 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setMasterSenders(senders.map(s => s.name));
         } catch (e) {
             console.error("Failed to load initial data", e);
+        } finally {
+            setIsInitialLoading(false);
         }
     };
 
     useEffect(() => {
         const init = async () => {
-            // 1. Load Data
-            await loadData();
+            // 1. 초기 필수 데이터 비동기 병렬 실행
+            loadInitialData();
 
-            // 2. Register Push
-            if (Platform.OS === 'web') {
-                if (messaging && typeof Notification !== 'undefined') {
-                    try {
-                        const permission = await Notification.requestPermission();
-                        if (permission === 'granted') {
-                            const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-                            if (token) setWebPushToken(token);
-                        }
-                    } catch (e) {
-                        console.error("Web push registration failed", e);
-                    }
-                }
-            } else {
-                const token = await registerForPushNotificationsAsync();
-                if (token) setExpoPushToken(token);
-            }
+            // 2. 알림 권한 체크 (백그라운드 처리)
+            setupNotifications();
 
-            // 3. Deep Link Handling
-            const handleDeepLink = async (url: string | null) => {
-                if (!url) return;
-                let slug = '';
-                if (url.includes('postnoti://')) {
-                    const parts = url.replace('postnoti://', '').split('/');
-                    if (parts[0] === 'branch') slug = parts[1];
-                } else {
-                    try {
-                        const urlObj = new URL(url);
-                        const pathParts = urlObj.pathname.split('/').filter(p => p);
-                        if (pathParts[0] === 'branch') slug = pathParts[1];
-                    } catch (e) { }
-                }
-
-                if (slug) {
-                    const { data } = await supabase.from('companies').select('*').eq('slug', slug).single();
-                    if (data) {
-                        setBrandingCompany(data);
-                        setMode('tenant_login');
-                    }
-                }
-            };
-
-            const initialUrl = await Linking.getInitialURL();
-            if (initialUrl) await handleDeepLink(initialUrl);
-
-            setIsInitializing(false);
-
-            const subscription = Linking.addEventListener('url', (event) => handleDeepLink(event.url));
-            return () => subscription.remove();
+            // 3. 딥링크 핸들링
+            setupDeepLinking();
         };
 
-        let sub: any;
         init();
     }, []);
+
+    const setupNotifications = async () => {
+        if (Platform.OS === 'web') {
+            if (messaging && typeof Notification !== 'undefined') {
+                try {
+                    const permission = Notification.permission === 'default'
+                        ? await Notification.requestPermission()
+                        : Notification.permission;
+
+                    if (permission === 'granted') {
+                        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+                        if (token) setWebPushToken(token);
+                    }
+                } catch (e) {
+                    console.error("Web push registration failed", e);
+                }
+            }
+        } else {
+            const token = await registerForPushNotificationsAsync();
+            if (token) setExpoPushToken(token);
+        }
+    };
+
+    const setupDeepLinking = async () => {
+        const handleDeepLink = async (url: string | null) => {
+            if (!url) return;
+            let slug = '';
+            if (url.includes('postnoti://')) {
+                const parts = url.replace('postnoti://', '').split('/');
+                if (parts[0] === 'branch') slug = parts[1];
+            } else {
+                try {
+                    const urlObj = new URL(url);
+                    const pathParts = urlObj.pathname.split('/').filter(p => p);
+                    if (pathParts[0] === 'branch') slug = pathParts[1];
+                } catch (e) { }
+            }
+
+            if (slug) {
+                const { data } = await supabase.from('companies').select('*').eq('slug', slug).single();
+                if (data) {
+                    setBrandingCompany(data);
+                    setMode('tenant_login');
+                }
+            }
+        };
+
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) await handleDeepLink(initialUrl);
+
+        const subscription = Linking.addEventListener('url', (event) => handleDeepLink(event.url));
+        return () => subscription.remove();
+    };
 
     // Back Handler Logic is now handled by React Navigation in App.tsx
     // (Manual removal to avoid conflict with Stack Navigator)
 
 
 
-    // --- Actions ---
+    // --- Actions --- (handleBranchSelect has been moved and optimized)
 
-    const handleBranchSelect = async (company: Company) => {
-        setSelectedCompany(company);
-        setMode('admin_dashboard');
-        const [p, m] = await Promise.all([
-            profilesService.getProfilesByCompany(company.id),
-            mailService.getMailsByCompany(company.id)
-        ]);
-        setProfiles(p);
-        setMailLogs(m);
-    };
 
     const copyTenantLink = (company: Company) => {
         const webLink = `https://postnoti-app.vercel.app/branch/${company.slug}`;
@@ -292,12 +299,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const handleRegisterMail = async () => {
-        if (!selectedCompany) return;
-        if (!matchedProfile) {
-            Alert.alert('알림', '우편물을 받을 입주사를 선택해주세요.');
-            return;
+    const handleBranchSelect = async (company: Company) => {
+        setSelectedCompany(company);
+        setMode('admin_dashboard');
+
+        setIsRefreshing(true);
+        try {
+            const [p, m] = await Promise.all([
+                profilesService.getProfilesByCompany(company.id),
+                mailService.getMailsByCompany(company.id)
+            ]);
+            setProfiles(p);
+            setMailLogs(m);
+        } catch (e) {
+            console.error("Failed to load branch data", e);
+        } finally {
+            setIsRefreshing(false);
         }
+    };
+
+    const handleRegisterMail = async () => {
+        if (!selectedCompany || !matchedProfile) return;
 
         try {
             setOcrLoading(true);
@@ -310,61 +332,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 extraImages
             );
 
-            // Send Push
-            if (matchedProfile.push_token) {
-                const hasExtra = extraImages.length > 0;
-                const message = {
-                    to: matchedProfile.push_token,
-                    sound: 'default',
-                    title: `[${selectedCompany.name}] 우편물 도착 📮`,
-                    body: `${detectedSender ? `${detectedSender}에서 보낸 ` : ''}${detectedMailType} 우편물이 도착했습니다.${hasExtra ? ' (상세 사진 포함)' : ''}`,
-                    data: { company_id: selectedCompany.id },
-                };
+            // Background notification task
+            const runNotifications = async () => {
+                const title = `[${selectedCompany.name}] 우편물 도착 📮`;
+                const body = `${detectedSender ? `${detectedSender}에서 보낸 ` : ''}${detectedMailType} 우편물이 도착했습니다.`;
 
-                // Note: Ideally move this to Edge Function
-                await fetch('https://exp.host/--/api/v2/push/send', {
-                    method: 'POST',
-                    headers: {
-                        Accept: 'application/json',
-                        'Accept-encoding': 'gzip, deflate',
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(message),
-                });
-            }
-
-            // --- Web Push (Vercel Serverless Function) ---
-            if (matchedProfile.web_push_token) {
-                try {
-                    const pushPayload = {
-                        token: matchedProfile.web_push_token,
-                        title: `[${selectedCompany.name}] 우편물 도착 📮`,
-                        body: `${detectedSender ? `${detectedSender}에서 보낸 ` : ''}${detectedMailType} 우편물이 도착했습니다.`,
-                        data: {
-                            company_id: selectedCompany.id,
-                            click_action: `https://postnoti-app.vercel.app/branch/${selectedCompany.slug}`
-                        }
-                    };
-
-                    // 우리가 방금 만든 Vercel API 서버를 호출합니다.
-                    // 네이티브 앱에서는 전체 주소(https://...)를 써줘야 합니다.
-                    await fetch('https://postnoti-app.vercel.app/api/send-push', {
+                if (matchedProfile.push_token) {
+                    fetch('https://exp.host/--/api/v2/push/send', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(pushPayload)
-                    });
-                    console.log("Web push requested via API for:", matchedProfile.name);
-                } catch (e) {
-                    console.error("Web push API call failed", e);
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ to: matchedProfile.push_token, sound: 'default', title, body })
+                    }).catch(() => { });
                 }
-            }
+                if (matchedProfile.web_push_token) {
+                    fetch('https://postnoti-app.vercel.app/api/send-push', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: matchedProfile.web_push_token, title, body, data: { company_id: selectedCompany.id } })
+                    }).catch(() => { });
+                }
+            };
+            runNotifications();
 
             Alert.alert('완료', `${matchedProfile.name}님께 알림을 보냈습니다.`);
-
-            const m = await mailService.getMailsByCompany(selectedCompany.id);
-            setMailLogs(m);
+            const refreshedMails = await mailService.getMailsByCompany(selectedCompany.id);
+            setMailLogs(refreshedMails);
             setMode('admin_dashboard');
 
             // Reset
@@ -373,8 +365,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setMatchedProfile(null);
             setExtraImages([]);
         } catch (error) {
-            console.error(error);
-            Alert.alert('오류', '우편물 등록에 실패했습니다.');
+            Alert.alert('오류', '등록 실패');
         } finally {
             setOcrLoading(false);
         }
@@ -384,7 +375,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         <AppContext.Provider
             value={{
                 mode, setMode,
-                isInitializing,
+                isInitializing: isInitialLoading,
+                isRefreshing,
                 expoPushToken,
                 webPushToken,
                 brandingCompany, setBrandingCompany,
@@ -409,7 +401,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 detectedSender, setDetectedSender,
                 matchedProfile, setMatchedProfile,
                 extraImages, setExtraImages,
-                loadData,
+                loadData: loadInitialData,
                 handleBranchSelect,
                 runOCR,
                 handleRegisterMail,

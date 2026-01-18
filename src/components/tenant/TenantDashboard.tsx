@@ -393,6 +393,27 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
         );
     }
 
+    const handleLogout = async () => {
+        Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
+            { text: '취소', style: 'cancel' },
+            {
+                text: '로그아웃',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await AsyncStorage.removeItem(`tenant_name_${companyId}`);
+                        await AsyncStorage.removeItem(`tenant_phone_${companyId}`);
+                        setMyProfile(null);
+                        setName('');
+                        setPhoneSuffix('');
+                    } catch (e) {
+                        console.error('Logout failed', e);
+                    }
+                }
+            }
+        ]);
+    };
+
     const requestNotificationPermission = async () => {
         if (Platform.OS !== 'web') return;
 
@@ -407,21 +428,21 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
             return;
         }
 
+        setLoading(true); // 로딩 표시 사용 (전체 로딩이나 별도 상태)
         try {
             console.log("Requesting permission...");
             const permission = await Notification.requestPermission();
 
             if (permission === 'granted') {
-                window.alert('권한 허용됨! 기기 정보를 등록합니다...');
+                // window.alert('권한 허용됨! 기기 정보를 등록합니다...'); // 너무 많은 알림창은 방해됨
                 const token = await getToken(messaging, { vapidKey: VAPID_KEY });
 
                 if (token && myProfile?.id) {
                     await profilesService.updateProfile(myProfile.id, { web_push_token: token });
-                    window.alert('✅ 알림 설정 완료!\n이제 우편물이 오면 스마트폰으로 알려드립니다.');
-                    // 강제 새로고침으로 배너를 지우고 상태를 확정합니다.
-                    window.location.reload();
+                    // 상태 업데이트를 통해 UI 즉시 반영 (리로드 제거)
+                    Alert.alert('✅ 알림 설정 완료!', '이제 우편물이 오면 스마트폰으로 알려드립니다.');
                 } else {
-                    window.alert('신분증(토큰)을 가져오지 못했습니다. 잠시 후 새로고침 해주세요.');
+                    window.alert('신분증(토큰)을 가져오지 못했습니다. 잠시 후 다시 시도해주세요.');
                 }
             } else if (permission === 'denied') {
                 window.alert('알림 권한이 차단되어 있습니다.\n설정에서 알림을 허용으로 바꿔주세요.');
@@ -429,6 +450,8 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
         } catch (error: any) {
             console.error('Error:', error);
             window.alert('설정 중 오류: ' + (error?.message || '알 수 없는 에러'));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -458,13 +481,13 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                     </View>
                     <Text style={styles.subtitle}>{companyName} 우편함</Text>
                 </View>
-                <Pressable onPress={() => setMyProfile(null)}>
+                <Pressable onPress={handleLogout}>
                     <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 13 }}>로그아웃</Text>
                 </Pressable>
             </View>
 
             {/* 알림 권한 유도 배너 (토큰이 없을 때만 표시) */}
-            {Platform.OS === 'web' && !myProfile.web_push_token && (
+            {Platform.OS === 'web' && Notification.permission !== 'granted' && !myProfile.web_push_token && (
                 <View style={[styles.installBanner, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}>
                     <View style={{ flex: 1 }}>
                         <Text style={[styles.installBannerTitle, { color: '#6D28D9' }]}>🔔 알림이 꺼져 있습니다</Text>
@@ -495,47 +518,14 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                 </View>
             )}
 
-            {/* 탭 필터 */}
-            {/* 알림 설정 배너 - 기기마다 알림 권한이 다를 수 있으므로 브라우저 권한을 직접 체크 */}
-            {(Platform.OS === 'web' && typeof Notification !== 'undefined' && (Notification.permission === 'default' || Notification.permission === 'denied')) && (
-                <View style={{
-                    margin: 16,
-                    padding: 20,
-                    backgroundColor: '#4F46E5', // 눈에 띄는 진한 보라색
-                    borderRadius: 20,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 5,
-                    elevation: 8,
-                }}>
-                    <View style={{ flex: 1, marginRight: 15 }}>
-                        <Text style={{ fontSize: 16, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 }}>
-                            📢 푸시 알림 허용
-                        </Text>
-                        <Text style={{ fontSize: 13, color: '#E0E7FF', lineHeight: 18 }}>
-                            실시간으로 우편물 도착 소식을 받으시려면 허용 버튼을 눌러주세요.
-                        </Text>
-                    </View>
-                    <Pressable
-                        onPress={async () => {
-                            console.log("Push allow button clicked");
-                            if (window.confirm('실시간 푸시 알림을 허용하시겠습니까?')) {
-                                await requestNotificationPermission();
-                            }
-                        }}
-                        style={({ pressed }) => ({
-                            backgroundColor: pressed ? '#E0E7FF' : '#FFFFFF',
-                            paddingHorizontal: 16,
-                            paddingVertical: 10,
-                            borderRadius: 12,
-                        })}
-                    >
-                        <Text style={{ color: '#4F46E5', fontWeight: '800', fontSize: 14 }}>허용하기</Text>
-                    </Pressable>
-                </View>
+            {/* 탭 필터 (하단 알림 배너 중복 제거 및 로직 통합) */}
+            {(Platform.OS === 'web' && typeof Notification !== 'undefined' && (Notification.permission === 'default' || Notification.permission === 'denied') && !myProfile.web_push_token) && (
+                /* 위쪽 배너와 역할이 중복되므로, 상태에 따라 하나만 보여주거나 통합하는 것이 좋습니다. 
+                   여기서는 상단 '🔔 알림이 꺼져 있습니다' 배너가 이미 있으므로 이 블록은 제거하거나, 
+                   더 눈에 띄는 하단 플로팅으로 대체할 수 있습니다. 
+                   사용자 경험상 위쪽 배너가 자연스러우므로 이 블록은 숨깁니다. 
+                */
+                null
             )}
 
             <View style={styles.tabContainer}>

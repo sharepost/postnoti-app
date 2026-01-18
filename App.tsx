@@ -39,9 +39,12 @@ function AppContent() {
 
   if (isInitializing) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color="#4F46E5" />
-        <Text style={{ marginTop: 15, color: '#64748B', fontSize: 13, fontWeight: '600' }}>지점 정보를 인식하고 있습니다...</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontSize: 28, fontWeight: '900', color: '#1E293B', letterSpacing: 2, marginBottom: 10 }}>POSTNOTI</Text>
+          <ActivityIndicator size="small" color="#4F46E5" />
+          <Text style={{ marginTop: 20, color: '#94A3B8', fontSize: 13, fontWeight: '500' }}>스마트 우편 관리 시스템 준비 중...</Text>
+        </View>
       </View>
     );
   }
