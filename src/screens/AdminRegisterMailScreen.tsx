@@ -50,21 +50,47 @@ export const AdminRegisterMailScreen = () => {
                     {selectedImage ? (
                         <View>
                             <Image source={{ uri: selectedImage }} style={appStyles.previewImage} />
-                            <Pressable style={appStyles.retakeBtn} onPress={async () => {
-                                const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-                                if (!result.canceled) runOCR(result.assets[0].uri);
-                            }}>
-                                <Text style={appStyles.retakeBtnText}>♻️ 다시 촬영</Text>
-                            </Pressable>
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <Pressable style={[appStyles.retakeBtn, { flex: 1 }]} onPress={async () => {
+                                    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+                                    if (!result.canceled) runOCR(result.assets[0].uri);
+                                }}>
+                                    <Text style={appStyles.retakeBtnText}>📷 다시 촬영</Text>
+                                </Pressable>
+                                <Pressable style={[appStyles.retakeBtn, { flex: 1, backgroundColor: '#F1F5F9' }]} onPress={async () => {
+                                    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8 });
+                                    if (!result.canceled) runOCR(result.assets[0].uri);
+                                }}>
+                                    <Text style={[appStyles.retakeBtnText, { color: '#64748B' }]}>🖼️ 앨범 선택</Text>
+                                </Pressable>
+                            </View>
                         </View>
                     ) : (
-                        <PrimaryButton
-                            label="📷 우편물 사진 촬영"
-                            onPress={async () => {
-                                const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-                                if (!result.canceled) runOCR(result.assets[0].uri);
-                            }}
-                        />
+                        <View style={{ gap: 10 }}>
+                            <PrimaryButton
+                                label="📷 우편물 사진 촬영"
+                                onPress={async () => {
+                                    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+                                    if (!result.canceled) runOCR(result.assets[0].uri);
+                                }}
+                            />
+                            <Pressable
+                                onPress={async () => {
+                                    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8 });
+                                    if (!result.canceled) runOCR(result.assets[0].uri);
+                                }}
+                                style={{
+                                    backgroundColor: '#F1F5F9',
+                                    padding: 15,
+                                    borderRadius: 12,
+                                    alignItems: 'center',
+                                    borderWidth: 1,
+                                    borderColor: '#E2E8F0'
+                                }}
+                            >
+                                <Text style={{ color: '#64748B', fontWeight: '700' }}>🖼️ 앨범에서 사진 가져오기</Text>
+                            </Pressable>
+                        </View>
                     )}
                     {ocrLoading && <ActivityIndicator style={{ marginTop: 20 }} color="#4F46E5" />}
                 </SectionCard>
@@ -162,19 +188,27 @@ export const AdminRegisterMailScreen = () => {
                                         </View>
                                     ))}
                                     <Pressable
-                                        onPress={async () => {
-                                            const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-                                            if (!result.canceled) {
-                                                // Assuming we don't have direct access to ocrPreprocess here unless exported from context?
-                                                // It is exported from context in my design
-                                                // If context doesn't export ocrPreprocess, use raw uri
-                                                setExtraImages([...extraImages, result.assets[0].uri]);
-                                            }
+                                        onPress={() => {
+                                            Alert.alert('이미지 추가', '어디서 사진을 가져올까요?', [
+                                                {
+                                                    text: '📷 촬영하기', onPress: async () => {
+                                                        const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+                                                        if (!result.canceled) setExtraImages([...extraImages, result.assets[0].uri]);
+                                                    }
+                                                },
+                                                {
+                                                    text: '🖼️ 앨범에서 선택', onPress: async () => {
+                                                        const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8 });
+                                                        if (!result.canceled) setExtraImages([...extraImages, result.assets[0].uri]);
+                                                    }
+                                                },
+                                                { text: '취소', style: 'cancel' }
+                                            ]);
                                         }}
                                         style={{ width: 80, height: 80, borderRadius: 8, borderStyle: 'dotted', borderWidth: 2, borderColor: '#CBD5E1', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' }}
                                     >
                                         <Text style={{ color: '#94A3B8', fontSize: 24 }}>+</Text>
-                                        <Text style={{ color: '#94A3B8', fontSize: 10 }}>페이지 추가</Text>
+                                        <Text style={{ color: '#94A3B8', fontSize: 10 }}>이미지 추가</Text>
                                     </Pressable>
                                 </View>
                             </SectionCard>
