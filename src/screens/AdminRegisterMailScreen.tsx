@@ -42,9 +42,23 @@ export const AdminRegisterMailScreen = () => {
         }
     };
 
+    const handleBack = () => {
+        if (navigation.canGoBack()) {
+            navigation.goBack();
+        } else {
+            navigation.navigate('AdminDashboard');
+        }
+    };
+
     return (
         <View style={appStyles.flexContainer}>
-            <AppHeader title="우편물 등록" onBack={() => navigation.goBack()} />
+            <AppHeader title="우편물 등록" onBack={handleBack} />
+            {ocrLoading && (
+                <View style={{ position: 'absolute', zIndex: 99, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#4F46E5" />
+                    <Text style={{ marginTop: 10, fontWeight: '700' }}>처리 중입니다...</Text>
+                </View>
+            )}
             <ScrollView style={appStyles.container} contentContainerStyle={{ paddingBottom: 100 }}>
                 <SectionCard title="우편물 촬영">
                     {selectedImage ? (

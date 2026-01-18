@@ -41,11 +41,24 @@ export const AdminDashboardScreen = () => {
         setIsManualSearchVisible,
     } = useAppContent();
 
+    const handleBack = () => {
+        if (navigation.canGoBack()) {
+            navigation.goBack();
+        } else {
+            navigation.navigate('AdminBranchSelect');
+        }
+    };
+
+    if (!selectedCompany) {
+        navigation.replace('AdminBranchSelect');
+        return null;
+    }
+
     return (
         <View style={appStyles.flexContainer}>
             <AppHeader
                 title={`${selectedCompany?.name} 관리`}
-                onBack={() => navigation.goBack()}
+                onBack={handleBack}
                 onMenu={() => setIsAdminMenuVisible(true)}
             />
             <ScrollView style={appStyles.container} contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}>

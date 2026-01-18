@@ -201,58 +201,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         init();
     }, []);
 
-    // Back Handler Logic (Moved from App.tsx)
-    useEffect(() => {
-        const backAction = () => {
-            // 1. Modals
-            if (isTenantMgmtVisible || isSenderMgmtVisible || isHistoryVisible || isAdminMgmtVisible || isManualSearchVisible) {
-                return false; // Let modal props handle it or close manually via state elsewhere if needed. 
-                // NOTE: In App.tsx, returning false meant "default behavior" or "propagate". 
-                // But for modals, usually we want to intercept.
-                // The original code returned false, relying on specific modal onRequestClose logic?
-                // Actually, if we want to CLOSE modal on back press, we should do it here if the modal is full screen.
-                // For now, let's keep original logic philosophy: if specific modal Logic handles it, we return false?
-                // Wait, original usage in App.tsx:
-                /*
-                  if (isTenantMgmtVisible ... ) return false; 
-                */
-                // This implies the Modal's own onRequestClose handles the back press (because valid Modal component handles back button on Android).
-                // specific Modal component 'visible' prop manages it.
-                return false;
-            }
+    // Back Handler Logic is now handled by React Navigation in App.tsx
+    // (Manual removal to avoid conflict with Stack Navigator)
 
-            // 2. Mode Navigation
-            if (mode === 'admin_register_mail') {
-                setMode('admin_dashboard');
-                return true;
-            }
-            if (mode === 'admin_dashboard') {
-                setMode('admin_branch_select');
-                return true;
-            }
-            if (mode === 'admin_branch_select') {
-                setMode('admin_login');
-                return true;
-            }
-            if (mode === 'admin_login') {
-                setMode('landing');
-                return true;
-            }
-
-            // 3. Landing -> Exit
-            if (mode === 'landing') {
-                Alert.alert('앱 종료', '앱을 종료하시겠습니까?', [
-                    { text: '취소', onPress: () => null, style: 'cancel' },
-                    { text: '종료', onPress: () => BackHandler.exitApp() }
-                ]);
-                return true;
-            }
-            return false;
-        };
-
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-        return () => backHandler.remove();
-    }, [mode, isTenantMgmtVisible, isAdminMgmtVisible, isSenderMgmtVisible, isHistoryVisible, isManualSearchVisible]);
 
 
     // --- Actions ---
