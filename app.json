@@ -27,7 +27,10 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "display": "standalone",
+      "themeColor": "#FEF3C7",
+      "description": "세입자를 위한 우편물 알림 서비스"
     },
     "extra": {
       "eas": {
