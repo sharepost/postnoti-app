@@ -494,6 +494,35 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
             )}
 
             {/* 탭 필터 */}
+            {/* 알림 설정 배너 - 기기마다 알림 권한이 다를 수 있으므로 브라우저 권한을 직접 체크 */}
+            {(Platform.OS === 'web' && typeof Notification !== 'undefined' && (Notification.permission === 'default' || Notification.permission === 'denied')) && (
+                <View style={{
+                    margin: 16,
+                    padding: 16,
+                    backgroundColor: '#EEF2FF',
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: '#C7D2FE',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                }}>
+                    <View style={{ flex: 1, marginRight: 12 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#4338CA', marginBottom: 2 }}>
+                            🔔 알림이 꺼져 있습니다
+                        </Text>
+                        <Text style={{ fontSize: 12, color: '#6366F1' }}>
+                            우편물 도착 소리를 실시간으로 들으시려면 알림을 켜주세요.
+                        </Text>
+                    </View>
+                    <PrimaryButton
+                        label="알림 켜기"
+                        onPress={requestNotificationPermission}
+                        style={{ width: 100, height: 40 }}
+                    />
+                </View>
+            )}
+
             <View style={styles.tabContainer}>
                 <Pressable
                     style={[styles.tabButton, filter === 'all' && styles.activeTab]}

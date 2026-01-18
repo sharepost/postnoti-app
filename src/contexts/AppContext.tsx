@@ -396,7 +396,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     };
 
                     // 우리가 방금 만든 Vercel API 서버를 호출합니다.
-                    await fetch('/api/send-push', {
+                    // 네이티브 앱에서는 전체 주소(https://...)를 써줘야 합니다.
+                    await fetch('https://postnoti-app.vercel.app/api/send-push', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
