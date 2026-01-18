@@ -499,28 +499,41 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
             {(Platform.OS === 'web' && typeof Notification !== 'undefined' && (Notification.permission === 'default' || Notification.permission === 'denied')) && (
                 <View style={{
                     margin: 16,
-                    padding: 16,
-                    backgroundColor: '#EEF2FF',
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: '#C7D2FE',
+                    padding: 20,
+                    backgroundColor: '#4F46E5', // 눈에 띄는 진한 보라색
+                    borderRadius: 20,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 5,
+                    elevation: 8,
                 }}>
-                    <View style={{ flex: 1, marginRight: 12 }}>
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#4338CA', marginBottom: 2 }}>
-                            🔔 알림이 꺼져 있습니다
+                    <View style={{ flex: 1, marginRight: 15 }}>
+                        <Text style={{ fontSize: 16, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 }}>
+                            📢 푸시 알림 허용
                         </Text>
-                        <Text style={{ fontSize: 12, color: '#6366F1' }}>
-                            우편물 도착 소리를 실시간으로 들으시려면 알림을 켜주세요.
+                        <Text style={{ fontSize: 13, color: '#E0E7FF', lineHeight: 18 }}>
+                            실시간으로 우편물 도착 소식을 받으시려면 허용 버튼을 눌러주세요.
                         </Text>
                     </View>
-                    <PrimaryButton
-                        label="알림 켜기"
-                        onPress={requestNotificationPermission}
-                        style={{ width: 100, height: 40 }}
-                    />
+                    <Pressable
+                        onPress={async () => {
+                            console.log("Push allow button clicked");
+                            if (window.confirm('실시간 푸시 알림을 허용하시겠습니까?')) {
+                                await requestNotificationPermission();
+                            }
+                        }}
+                        style={({ pressed }) => ({
+                            backgroundColor: pressed ? '#E0E7FF' : '#FFFFFF',
+                            paddingHorizontal: 16,
+                            paddingVertical: 10,
+                            borderRadius: 12,
+                        })}
+                    >
+                        <Text style={{ color: '#4F46E5', fontWeight: '800', fontSize: 14 }}>허용하기</Text>
+                    </Pressable>
                 </View>
             )}
 
