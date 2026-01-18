@@ -1,0 +1,198 @@
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    Image,
+    Alert,
+    Pressable,
+    ActivityIndicator,
+    Modal,
+    Dimensions
+} from 'react-native';
+import { mailService } from '../../services/mailService';
+import { Profile } from '../../services/profilesService';
+
+interface TenantMailHistoryProps {
+    profile: Profile;
+    onClose: () => void;
+    isTenantMode?: boolean;
+}
+
+export const TenantMailHistory = ({ profile, onClose, isTenantMode = false }: TenantMailHistoryProps) => {
+    const [mails, setMails] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedFullImage, setSelectedFullImage] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadHistory();
+    }, []);
+
+    const loadHistory = async () => {
+        try {
+            if (profile.id) {
+                const data = await mailService.getMailsByProfile(profile.id);
+                setMails(data || []);
+            }
+        } catch (error) {
+            console.error(error);
+            Alert.alert('오류', '이력을 불러오지 못했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    };
+
+    return (
+        <View style={styles.container}>
+            {loading ? (
+                <ActivityIndicator style={{ marginTop: 50 }} color="#4F46E5" size="large" />
+            ) : (
+                <ScrollView contentContainerStyle={styles.list}>
+                    {mails.map(mail => (
+                        <View key={mail.id} style={styles.card}>
+                            <View style={styles.headerRow}>
+                                <View style={{ flexDirection: 'row', gap: 6 }}>
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{mail.mail_type}</Text>
+                                    </View>
+                                    {mail.read_at ? (
+                                        <View style={[styles.badge, { backgroundColor: '#DCFCE7', borderColor: '#BBF7D0' }]}>
+                                            <Text style={[styles.badgeText, { color: '#15803D' }]}>읽음</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={[styles.badge, { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
+                                            <Text style={[styles.badgeText, { color: '#94A3B8' }]}>안읽음</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <Text style={styles.date}>{formatDate(mail.created_at)}</Text>
+                            </View>
+
+                            {mail.image_url ? (
+                                <Pressable onPress={() => {
+                                    setSelectedFullImage(mail.image_url);
+                                    if (isTenantMode && !mail.read_at) {
+                                        mailService.markAsRead(mail.id);
+                                        setMails(prev => prev.map(m => m.id === mail.id ? { ...m, read_at: new Date().toISOString() } : m));
+                                    }
+                                }}>
+                                    <Image
+                                        source={{ uri: mail.image_url }}
+                                        style={styles.image}
+                                        resizeMode="contain"
+                                    />
+                                    <View style={styles.zoomHint}>
+                                        <Text style={styles.zoomHintText}>
+                                            {isTenantMode && !mail.read_at ? '📩 터치하여 확인(읽음처리)' : '🔍 터치하여 확대'}
+                                        </Text>
+                                    </View>
+                                </Pressable>
+                            ) : (
+                                <View style={[styles.image, styles.noImage]}>
+                                    <Text style={{ color: '#CBD5E1' }}>No Image</Text>
+                                </View>
+                            )}
+
+                            <View style={styles.info}>
+                                <Text style={styles.senderLabel}>보낸 분</Text>
+                                <Text style={styles.sender}>
+                                    {mail.ocr_content || '(발신처 미상)'}
+                                </Text>
+                            </View>
+
+                            {/* 프리미엄 추가 촬영 이미지들 */}
+                            {mail.extra_images && mail.extra_images.length > 0 && (
+                                <View style={{ padding: 15, paddingTop: 0 }}>
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#6366F1', marginBottom: 8 }}>
+                                        📄 상세 페이지 ({mail.extra_images.length})
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                                            {mail.extra_images.map((img: string, idx: number) => (
+                                                <Pressable key={idx} onPress={() => setSelectedFullImage(img)}>
+                                                    <Image
+                                                        source={{ uri: img }}
+                                                        style={{ width: 100, height: 130, borderRadius: 8, backgroundColor: '#F1F5F9' }}
+                                                        resizeMode="cover"
+                                                    />
+                                                </Pressable>
+                                            ))}
+                                        </View>
+                                    </ScrollView>
+                                </View>
+                            )}
+                        </View>
+                    ))}
+                    {mails.length === 0 && (
+                        <Text style={styles.emptyText}>우편물 수령 내역이 없습니다.</Text>
+                    )}
+                </ScrollView>
+            )}
+
+            {/* 전체 화면 이미지 확대 모달 */}
+            <Modal
+                visible={!!selectedFullImage}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setSelectedFullImage(null)}
+            >
+                <View style={styles.fullImageContainer}>
+                    <Pressable style={styles.closeArea} onPress={() => setSelectedFullImage(null)}>
+                        <Text style={styles.closeText}>✕ 닫기</Text>
+                    </Pressable>
+                    <ScrollView
+                        maximumZoomScale={5}
+                        minimumZoomScale={1}
+                        showsHorizontalScrollIndicator={false}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.zoomWrapper}
+                    >
+                        {selectedFullImage && (
+                            <Image
+                                source={{ uri: selectedFullImage }}
+                                style={styles.fullImage}
+                                resizeMode="contain"
+                            />
+                        )}
+                    </ScrollView>
+                    <View style={styles.zoomFooter}>
+                        <Text style={styles.zoomFooterText}>💡 손가락으로 벌려 확대할 수 있습니다</Text>
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#F8FAFC' },
+    list: { padding: 20, paddingBottom: 100 },
+    card: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#E2E8F0', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', backgroundColor: '#fff' },
+    badge: { backgroundColor: '#F0F9FF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#E0F2FE' },
+    badgeText: { color: '#0369A1', fontWeight: '700', fontSize: 13 },
+    date: { color: '#64748B', fontSize: 14, fontWeight: '600' },
+    image: { width: '100%', height: 300, backgroundColor: '#000' },
+    zoomHint: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+    zoomHintText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+    noImage: { alignItems: 'center', justifyContent: 'center', height: 150, backgroundColor: '#F1F5F9' },
+    info: { padding: 15, backgroundColor: '#fff' },
+    senderLabel: { fontSize: 12, color: '#94A3B8', marginBottom: 4 },
+    sender: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+    emptyText: { textAlign: 'center', color: '#94A3B8', marginTop: 50, fontSize: 15 },
+
+    // 확대 모달 관련 스타일
+    fullImageContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' },
+    zoomWrapper: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
+    fullImage: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.8 },
+    closeArea: { position: 'absolute', top: 50, right: 20, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20 },
+    closeText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    zoomFooter: { position: 'absolute', bottom: 40, width: '100%', alignItems: 'center' },
+    zoomFooterText: { color: '#fff', fontSize: 12, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 }
+});

@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "sharedpost-app",
-    "slug": "sharedpost-app",
+    "name": "포스트노티 (PostNoti)",
+    "slug": "postnoti-app",
+    "scheme": "postnoti",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,9 +14,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.postnoti.app"
     },
     "android": {
+      "package": "com.postnoti.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -25,6 +28,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a78cf50e-37ca-4d89-86f5-87cf1fdff7f2"
+      }
     }
   }
 }
