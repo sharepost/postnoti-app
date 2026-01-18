@@ -63,6 +63,40 @@ export const CompanyManagement = ({ initialData, onComplete, onCancel }: Props) 
         }
     };
 
+    const handleDelete = async () => {
+        if (!initialData) return;
+
+        Alert.alert(
+            '지점 삭제',
+            `정말 '${initialData.name}' 지점을 삭제하시겠습니까?\n⚠️ 연결된 모든 입주사와 우편물 기록이 영구적으로 삭제될 수 있습니다.`,
+            [
+                { text: '취소', style: 'cancel' },
+                {
+                    text: '삭제하기',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setLoading(true);
+                        try {
+                            const { error } = await supabase
+                                .from('companies')
+                                .delete()
+                                .eq('id', initialData.id);
+
+                            if (error) throw error;
+                            Alert.alert('삭제 완료', '지점이 삭제되었습니다.');
+                            onComplete();
+                        } catch (error: any) {
+                            console.error(error);
+                            Alert.alert('오류', '삭제 중 문제가 발생했습니다.');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     return (
         <View style={{ flex: 1, padding: 16 }}>
             {/* 헤더 공간 */}
@@ -93,6 +127,15 @@ export const CompanyManagement = ({ initialData, onComplete, onCancel }: Props) 
                     onPress={handleSubmit}
                     style={{ marginTop: 10 }}
                 />
+
+                {initialData && (
+                    <PrimaryButton
+                        label="이 지점 삭제하기"
+                        onPress={handleDelete}
+                        style={{ marginTop: 20, backgroundColor: '#fee2e2' }}
+                        textStyle={{ color: '#dc2626' }}
+                    />
+                )}
             </SectionCard>
         </View>
     );

@@ -24,5 +24,13 @@ export const companiesService = {
             .single();
         if (error) throw error;
         return data as Company;
+    },
+
+    async deleteCompany(id: string) {
+        const { error } = await supabase
+            .from('companies')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
     }
 };

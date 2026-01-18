@@ -315,19 +315,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try {
             setOcrLoading(true);
 
-            // Upload images to Supabase Storage
-            let uploadedMainImage = '';
+            // Upload images to Supabase Storage (with fallback to local URIs)
+            let uploadedMainImage = selectedImage || '';
             if (selectedImage) {
                 const uploaded = await storageService.uploadImage(selectedImage);
-                if (uploaded) uploadedMainImage = uploaded;
+                if (uploaded) {
+                    uploadedMainImage = uploaded;
+                } else {
+                    // Upload failed, but keep local URI for admin view
+                    console.warn('⚠️ 이미지 업로드 실패. 로컬 경로로 저장합니다.');
+                }
             }
 
             const uploadedExtraImages: string[] = [];
             if (extraImages && extraImages.length > 0) {
-                const results = await Promise.all(extraImages.map(img => storageService.uploadImage(img)));
-                results.forEach(url => {
-                    if (url) uploadedExtraImages.push(url);
-                });
+                for (const img of extraImages) {
+                    const uploaded = await storageService.uploadImage(img);
+                    uploadedExtraImages.push(uploaded || img); // Fallback to original URI
+                }
             }
 
             await mailService.registerMail(
@@ -344,15 +349,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 const title = `[${selectedCompany.name}] 우편물 도착 📮`;
                 const body = `${detectedSender ? `${detectedSender}에서 보낸 ` : ''}${detectedMailType} 우편물이 도착했습니다.`;
 
-                // Prioritize Native Push (Expo/FCM) if available to avoid duplicates on mobile
+                // Send to ALL available tokens to ensure delivery on current device (Native & Web)
                 if (matchedProfile.push_token) {
                     fetch('https://exp.host/--/api/v2/push/send', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ to: matchedProfile.push_token, sound: 'default', title, body, data: { url: `postnoti://branch/${selectedCompany.slug}` } })
                     }).catch(() => { });
-                } else if (matchedProfile.web_push_token) {
-                    // Send Web Push only if Native Push is not available
+                }
+
+                if (matchedProfile.web_push_token) {
                     fetch('https://postnoti-app.vercel.app/api/send-push', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -381,6 +387,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setMatchedProfile(null);
             setExtraImages([]);
         } catch (error) {
+            console.error('Register mail error:', error);
             Alert.alert('오류', '등록 실패');
         } finally {
             setOcrLoading(false);

@@ -12,6 +12,16 @@ export const storageService = {
         if (uri.startsWith('http')) return uri; // Already a remote URL
 
         try {
+            // 1. Ensure bucket exists
+            const { data: buckets } = await supabase.storage.listBuckets();
+            const mailImagesBucket = buckets?.find(b => b.name === 'mail_images');
+
+            if (!mailImagesBucket) {
+                // Try to create it (might fail if permissions are missing, but worth a shot)
+                await supabase.storage.createBucket('mail_images', { public: true });
+            }
+
+            // 2. Prepare file
             const response = await fetch(uri);
             const blob = await response.blob();
 
@@ -19,10 +29,12 @@ export const storageService = {
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `${fileName}`;
 
+            // 3. Upload
             const { error: uploadError } = await supabase.storage
-                .from('mail_images') // Ensure this bucket exists in Supabase
+                .from('mail_images')
                 .upload(filePath, blob, {
                     contentType: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
+                    upsert: true
                 });
 
             if (uploadError) {
