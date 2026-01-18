@@ -18,7 +18,10 @@ const app = initializeApp(firebaseConfig);
 let messaging: Messaging | null = null;
 if (Platform.OS === 'web') {
     try {
-        messaging = getMessaging(app);
+        // 브라우저 환경에서만 실행
+        if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+            messaging = getMessaging(app);
+        }
     } catch (error) {
         console.error("Firebase Messaging failed to initialize", error);
     }

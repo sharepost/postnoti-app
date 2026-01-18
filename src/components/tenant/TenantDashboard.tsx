@@ -394,24 +394,39 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
     }
 
     const requestNotificationPermission = async () => {
-        if (Platform.OS === 'web' && messaging && typeof Notification !== 'undefined') {
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-                    if (token && myProfile?.id) {
-                        await profilesService.updateProfile(myProfile.id, { web_push_token: token });
-                        Alert.alert('알림 설정 완료', '이제 실시간으로 우편 도착 알림을 받으실 수 있습니다.');
-                        // 강제 리프레시를 위해 상태 업데이트
-                        setMyProfile({ ...myProfile, web_push_token: token });
-                    }
+        if (Platform.OS !== 'web') return;
+
+        if (typeof Notification === 'undefined') {
+            Alert.alert('오류', '이 브라우저는 알림 기능을 지원하지 않습니다.');
+            return;
+        }
+
+        if (!messaging) {
+            Alert.alert('오류', '알림 엔진이 초기화되지 않았습니다. (HTTPS 환경인지 확인해주세요)');
+            return;
+        }
+
+        try {
+            console.log("Requesting permission...");
+            const permission = await Notification.requestPermission();
+
+            if (permission === 'granted') {
+                console.log("Permission granted. Getting token...");
+                const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+
+                if (token && myProfile?.id) {
+                    await profilesService.updateProfile(myProfile.id, { web_push_token: token });
+                    Alert.alert('알림 설정 완료', '이제 실시간으로 우편 도착 알림을 받으실 수 있습니다.');
+                    setMyProfile({ ...myProfile, web_push_token: token });
                 } else {
-                    Alert.alert('알림 거부됨', '설정에서 알림 권한을 허용해주셔야 알림을 받으실 수 있습니다.');
+                    Alert.alert('오류', '알림 토큰을 생성하지 못했습니다.');
                 }
-            } catch (error) {
-                console.error('Error requesting notification permission:', error);
-                Alert.alert('오류', '알림 설정을 하는 중 문제가 발생했습니다.');
+            } else {
+                Alert.alert('알림 거부됨', '브라우저 설정에서 알림 권한을 직접 허용해주세요.');
             }
+        } catch (error: any) {
+            console.error('Error requesting notification permission:', error);
+            Alert.alert('오류', `알림 설정 중 에러가 발생했습니다: ${error?.message || '알 수 없는 오류'}`);
         }
     };
 
