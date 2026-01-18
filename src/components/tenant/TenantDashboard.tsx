@@ -394,7 +394,7 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
     }
 
     const requestNotificationPermission = async () => {
-        if (Platform.OS === 'web' && messaging) {
+        if (Platform.OS === 'web' && messaging && typeof Notification !== 'undefined') {
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {

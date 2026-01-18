@@ -148,7 +148,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
             // 2. Register Push
             if (Platform.OS === 'web') {
-                if (messaging) {
+                if (messaging && typeof Notification !== 'undefined') {
                     try {
                         const permission = await Notification.requestPermission();
                         if (permission === 'granted') {

@@ -101,23 +101,18 @@ function AppContent() {
 import { useNavigation } from '@react-navigation/native';
 
 function NavigationBridge() {
-  const { mode } = useAppContent();
+  const { mode, brandingCompany } = useAppContent();
   const navigation = useNavigation<any>();
 
   useEffect(() => {
-    // If mode changes to 'tenant_login', navigate to TenantDashboard
-    if (mode === 'tenant_login') {
+    // If mode changes to 'tenant_login' and we have branding, navigate to TenantDashboard
+    if (mode === 'tenant_login' && brandingCompany) {
       navigation.reset({
         index: 0,
         routes: [{ name: 'TenantDashboard' }],
       });
     }
-    // Deep links for 'branch' are handled in AppContext -> setMode('tenant_login') -> Here -> Navigate.
-
-    // Other generic modes? 
-    // If we manually setMode('admin_branch_select'), we might want to sync?
-    // But screens now call navigation.navigate directly so this is mostly for the Deep Link start event.
-  }, [mode, navigation]);
+  }, [mode, brandingCompany, navigation]);
 
   return null;
 }
