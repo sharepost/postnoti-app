@@ -654,8 +654,6 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                                 resizeMode="contain"
                             />
                         )}
-                        resizeMode="contain"
-                        />
                     </ScrollView>
                     <View style={styles.zoomFooter}>
                         <Text style={styles.zoomFooterText}>💡 손가락으로 벌려 확대할 수 있습니다</Text>
