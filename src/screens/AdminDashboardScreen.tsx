@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Image, Modal, SafeAreaView, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Image, Modal, SafeAreaView, ActivityIndicator, SectionList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
@@ -62,7 +62,7 @@ export const AdminDashboardScreen = () => {
                 onBack={handleBack}
                 onMenu={() => setIsAdminMenuVisible(true)}
             />
-            <FlatList
+            <SectionList
                 style={appStyles.container}
                 contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
                 ListHeaderComponent={
@@ -96,9 +96,9 @@ export const AdminDashboardScreen = () => {
                             </Pressable>
                         </View>
 
-                        <View style={[appStyles.premiumInfoCard, { marginTop: 10, paddingBottom: 0 }]}>
+                        <View style={[appStyles.premiumInfoCard, { marginTop: 10, paddingBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 }]}>
                             <Text style={[appStyles.premiumInfoLabel, { marginBottom: 16 }]}>최근 발송 내역</Text>
-                            <View style={[appStyles.premiumSearchBox, { marginBottom: 10 }]}>
+                            <View style={[appStyles.premiumSearchBox, { marginBottom: 5 }]}>
                                 <Ionicons name="search-outline" size={18} color="#94A3B8" style={{ position: 'absolute', left: 14, top: 14, zIndex: 1 }} />
                                 <TextInput
                                     style={[appStyles.premiumSearchInput, { paddingLeft: 42 }]}
@@ -110,22 +110,52 @@ export const AdminDashboardScreen = () => {
                                     <ActivityIndicator size="small" color="#4F46E5" style={{ position: 'absolute', right: 14, top: 14 }} />
                                 )}
                             </View>
-                            {/* FlatList Header ends here, items act as logs */}
                         </View>
                     </>
                 }
-                data={mailLogs.filter(log => {
-                    const query = logSearchQuery.toLowerCase();
-                    const name = log.profiles?.name?.toLowerCase() || '';
-                    const room = log.profiles?.room_number?.toLowerCase() || '';
-                    const sender = log.ocr_content?.toLowerCase() || '';
-                    return name.includes(query) || room.includes(query) || sender.includes(query);
-                }).slice(0, logPageSize)}
+                sections={(() => {
+                    const filtered = mailLogs.filter(log => {
+                        const query = logSearchQuery.toLowerCase();
+                        const name = log.profiles?.name?.toLowerCase() || '';
+                        const room = log.profiles?.room_number?.toLowerCase() || '';
+                        const sender = log.ocr_content?.toLowerCase() || '';
+                        return name.includes(query) || room.includes(query) || sender.includes(query);
+                    }).slice(0, logPageSize);
+
+                    const groups: { [key: string]: any[] } = {};
+                    filtered.forEach(log => {
+                        const date = new Date(log.created_at);
+                        const dateStr = date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+
+                        // 오늘/어제 체크
+                        const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+                        const yesterdayDate = new Date();
+                        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                        const yesterday = yesterdayDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+
+                        let header = dateStr;
+                        if (dateStr === today) header = '오늘';
+                        if (dateStr === yesterday) header = '어제';
+
+                        if (!groups[header]) groups[header] = [];
+                        groups[header].push(log);
+                    });
+
+                    return Object.keys(groups).map(key => ({
+                        title: key,
+                        data: groups[key]
+                    }));
+                })()}
                 keyExtractor={(item) => item.id}
+                renderSectionHeader={({ section: { title } }) => (
+                    <View style={{ backgroundColor: '#F8FAFC', paddingHorizontal: 20, paddingVertical: 8, marginTop: 10 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#64748B' }}>{title}</Text>
+                    </View>
+                )}
                 renderItem={({ item: log }) => (
-                    <View style={{ paddingHorizontal: 20 }}>
+                    <View style={{ paddingHorizontal: 20, backgroundColor: '#fff' }}>
                         <Pressable
-                            style={[appStyles.logItem, { marginBottom: 10 }]}
+                            style={[appStyles.logItem, { marginBottom: 0, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', borderRadius: 0, paddingVertical: 14 }]}
                             onPress={() => {
                                 if (log.profiles) {
                                     setSelectedProfileForHistory(log.profiles);
@@ -135,17 +165,26 @@ export const AdminDashboardScreen = () => {
                         >
                             <Image
                                 source={log.image_url ? { uri: log.image_url } : { uri: 'https://via.placeholder.com/50' }}
-                                style={{ width: 50, height: 50, borderRadius: 8, backgroundColor: '#E2E8F0', marginRight: 12 }}
+                                style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: '#E2E8F0', marginRight: 12 }}
                                 resizeMode="cover"
                             />
                             <View style={{ flex: 1 }}>
-                                <Text style={appStyles.logName}>{log.profiles?.name} ({log.profiles?.room_number})</Text>
-                                <Text style={appStyles.logSender}>
-                                    {log.ocr_content ? `To: ${log.ocr_content}` : '발신처 미상'}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                                    <Text style={[appStyles.logName, { fontSize: 15 }]}>{log.profiles?.name}</Text>
+                                    <Text style={{ fontSize: 12, color: '#94A3B8', marginLeft: 6 }}>{log.profiles?.room_number}</Text>
+                                </View>
+                                <Text style={[appStyles.logSender, { fontSize: 13, color: '#475569' }]} numberOfLines={1}>
+                                    {log.ocr_content ? `${log.ocr_content}` : '발신처 미상'}
                                 </Text>
-                                <Text style={appStyles.logInfo}>{log.mail_type} | {new Date(log.created_at).toLocaleDateString()}</Text>
                             </View>
-                            <Text style={{ fontSize: 20, color: '#CBD5E1' }}>›</Text>
+                            <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>
+                                    {new Date(log.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                </Text>
+                                <View style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                    <Text style={{ fontSize: 10, color: '#64748B', fontWeight: '600' }}>{log.mail_type}</Text>
+                                </View>
+                            </View>
                         </Pressable>
                     </View>
                 )}
@@ -156,11 +195,12 @@ export const AdminDashboardScreen = () => {
                 }}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={() => (
-                    <View style={{ height: 20, backgroundColor: 'transparent' }} />
+                    <View style={{ height: 20 }} />
                 )}
                 ListEmptyComponent={
                     <Text style={[appStyles.emptyText, { textAlign: 'center', marginTop: 30 }]}>검색 결과가 없습니다.</Text>
                 }
+                stickySectionHeadersEnabled={true}
             />
 
             {/* 입주사 관리 모달 */}

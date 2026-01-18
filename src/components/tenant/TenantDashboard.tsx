@@ -295,27 +295,38 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                         )}
                     </View>
                 )}
-                {/* 프리미엄 상세 이미지 미리보기 */}
-                {item.extra_images && item.extra_images.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                            {item.extra_images.map((img: string, idx: number) => (
-                                <Pressable
-                                    key={idx}
-                                    onPress={() => {
-                                        setSelectedMailImage(img);
-                                        if (!item.read_at) {
-                                            mailService.markAsRead(item.id);
-                                            setMails(prev => prev.map(m => m.id === item.id ? { ...m, read_at: new Date().toISOString() } : m));
-                                        }
-                                    }}
-                                >
-                                    <Image source={{ uri: img }} style={{ width: 50, height: 50, borderRadius: 6, backgroundColor: '#F1F5F9' }} />
-                                </Pressable>
-                            ))}
-                        </View>
-                    </ScrollView>
-                )}
+                {/* 프리미엄 상세 이미지 미리보기 - data parsing fix */}
+                {(() => {
+                    let images: string[] = [];
+                    if (Array.isArray(item.extra_images)) {
+                        images = item.extra_images;
+                    } else if (typeof item.extra_images === 'string') {
+                        try {
+                            const parsed = JSON.parse(item.extra_images);
+                            if (Array.isArray(parsed)) images = parsed;
+                        } catch (e) { }
+                    }
+
+                    if (images.length === 0) return null;
+
+                    return (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                {images.map((img: string, idx: number) => (
+                                    <Pressable
+                                        key={idx}
+                                        onPress={() => {
+                                            setSelectedMailImage(img);
+                                            // 읽음 처리는 하지 않음 (이미 메인 터치 시 처리됨 or 명시적 처리 필요 시 추가)
+                                        }}
+                                    >
+                                        <Image source={{ uri: img }} style={{ width: 60, height: 60, borderRadius: 8, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' }} resizeMode="cover" />
+                                    </Pressable>
+                                ))}
+                            </View>
+                        </ScrollView>
+                    );
+                })()}
             </View>
             {item.image_url ? (
                 <Image
