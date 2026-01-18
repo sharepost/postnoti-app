@@ -28,28 +28,25 @@ module.exports = async (req, res) => {
     try {
         const message = {
             token: token,
-            notification: {
+            // notification: { ... } removed to prevent automatic display by browser (Data-only message)
+            data: {
                 title: title,
                 body: body,
+                ...data
             },
-            data: data || {},
             android: {
                 priority: 'high',
-                notification: {
-                    sound: 'default'
-                }
             },
             apns: {
                 payload: {
                     aps: {
-                        sound: 'default'
+                        contentAvailable: true // Required for background data connection
                     }
                 }
             },
             webpush: {
-                notification: {
-                    icon: 'https://postnoti-app.vercel.app/favicon.ico', // 아이콘 경로 확인 필요
-                    badge: 'https://postnoti-app.vercel.app/favicon.ico',
+                headers: {
+                    Urgency: "high"
                 }
             }
         };

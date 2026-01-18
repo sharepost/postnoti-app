@@ -15,12 +15,14 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-    const notificationTitle = payload.notification.title;
+    // Data-only message handling
+    const data = payload.data || {};
+    const notificationTitle = data.title || '알림';
     const notificationOptions = {
-        body: payload.notification.body,
-        icon: '/favicon.ico', // Fixed icon path
+        body: data.body || '내용 없음',
+        icon: '/favicon.ico',
         badge: '/favicon.ico',
-        data: payload.data // URL is inside payload.data.url
+        data: data // Keep original data including url
     };
 
     self.registration.showNotification(notificationTitle, notificationOptions);
