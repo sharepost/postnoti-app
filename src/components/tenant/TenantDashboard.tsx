@@ -418,7 +418,8 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
                 if (token && myProfile?.id) {
                     await profilesService.updateProfile(myProfile.id, { web_push_token: token });
                     window.alert('✅ 알림 설정 완료!\n이제 우편물이 오면 스마트폰으로 알려드립니다.');
-                    setMyProfile({ ...myProfile, web_push_token: token });
+                    // 강제 새로고침으로 배너를 지우고 상태를 확정합니다.
+                    window.location.reload();
                 } else {
                     window.alert('신분증(토큰)을 가져오지 못했습니다. 잠시 후 새로고침 해주세요.');
                 }
