@@ -5,13 +5,34 @@ import { LoginScreen } from '../components/auth/LoginScreen';
 import { appStyles } from '../styles/appStyles';
 import { useAppContent } from '../contexts/AppContext';
 
+import { isKakaoTalk, redirectToExternalBrowser } from '../utils/browserDetection';
+
 export const LandingScreen = () => {
     const navigation = useNavigation<any>();
     const { setMode } = useAppContent();
-    // Note: setMode is kept for functionality, but we primarily use navigation now
+
+    React.useEffect(() => {
+        if (isKakaoTalk()) {
+            redirectToExternalBrowser();
+        }
+    }, []);
 
     return (
         <View style={appStyles.landingContainer}>
+            {isKakaoTalk() && (
+                <View style={{
+                    backgroundColor: '#FEE2E2',
+                    padding: 12,
+                    alignItems: 'center',
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#F87171'
+                }}>
+                    <Text style={{ color: '#991B1B', fontWeight: '700', fontSize: 13, textAlign: 'center' }}>
+                        ⚠️ 카카오톡 브라우저에서는 알림이 작동하지 않습니다.{"\n"}
+                        오른쪽 위 [···] 버튼 클릭 후 [다른 브라우저로 열기]를 해주세요!
+                    </Text>
+                </View>
+            )}
             <View style={appStyles.heroContent}>
                 <View style={appStyles.premiumLine} />
                 <Text style={appStyles.heroTitle}>POSTNOTI</Text>
