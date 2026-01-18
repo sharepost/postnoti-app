@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { mailService } from '../../services/mailService';
 import { Profile } from '../../services/profilesService';
+import { supabase } from '../../lib/supabase';
 
 interface TenantMailHistoryProps {
     profile: Profile;
@@ -110,13 +111,22 @@ export const TenantMailHistory = ({ profile, onClose, isTenantMode = false }: Te
                                     {!isTenantMode && (
                                         <Pressable
                                             style={styles.resendBtn}
-                                            onPress={() => {
-                                                if (!profile.push_token && !profile.web_push_token) {
+                                            onPress={async () => {
+                                                // Fetch latest profile data to ensure tokens are fresh
+                                                const { data: freshProfile } = await supabase
+                                                    .from('profiles')
+                                                    .select('*')
+                                                    .eq('id', profile.id)
+                                                    .single();
+
+                                                const targetProfile = freshProfile || profile;
+
+                                                if (!targetProfile.push_token && !targetProfile.web_push_token) {
                                                     Alert.alert('알림 불가', '이 입주민은 알림 수신 설정이 되어있지 않습니다.');
                                                     return;
                                                 }
 
-                                                Alert.alert('알림 재발송', `${profile.name}님께 알림을 다시 보내시겠습니까?`, [
+                                                Alert.alert('알림 재발송', `${targetProfile.name}님께 알림을 다시 보내시겠습니까?`, [
                                                     { text: '취소', style: 'cancel' },
                                                     {
                                                         text: '보내기',
@@ -126,29 +136,29 @@ export const TenantMailHistory = ({ profile, onClose, isTenantMode = false }: Te
                                                             const body = `${sender}에서 보낸 ${mail.mail_type} 우편물이 도착했습니다. (관리자 재발송)`;
 
                                                             try {
-                                                                if (profile.push_token) {
+                                                                if (targetProfile.push_token) {
                                                                     await fetch('https://exp.host/--/api/v2/push/send', {
                                                                         method: 'POST',
                                                                         headers: { 'Content-Type': 'application/json' },
                                                                         body: JSON.stringify({
-                                                                            to: profile.push_token,
+                                                                            to: targetProfile.push_token,
                                                                             sound: 'default',
                                                                             title,
                                                                             body,
-                                                                            data: { url: `postnoti://branch` } // Cannot easily determine slug here without join, defaulting to app open
+                                                                            data: { url: `postnoti://branch` }
                                                                         })
                                                                     });
-                                                                } else if (profile.web_push_token) {
+                                                                } else if (targetProfile.web_push_token) {
                                                                     await fetch('https://postnoti-app.vercel.app/api/send-push', {
                                                                         method: 'POST',
                                                                         headers: { 'Content-Type': 'application/json' },
                                                                         body: JSON.stringify({
-                                                                            token: profile.web_push_token,
+                                                                            token: targetProfile.web_push_token,
                                                                             title,
                                                                             body,
                                                                             data: {
                                                                                 company_id: mail.company_id,
-                                                                                url: `https://postnoti-app.vercel.app/branch` // Defaulting to root branch select if slug unknown
+                                                                                url: `https://postnoti-app.vercel.app/branch`
                                                                             }
                                                                         })
                                                                     });
@@ -176,15 +186,26 @@ export const TenantMailHistory = ({ profile, onClose, isTenantMode = false }: Te
                                     </Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                         <View style={{ flexDirection: 'row', gap: 10 }}>
-                                            {mail.extra_images.map((img: string, idx: number) => (
-                                                <Pressable key={idx} onPress={() => setSelectedFullImage(img)}>
-                                                    <Image
-                                                        source={{ uri: img }}
-                                                        style={{ width: 100, height: 130, borderRadius: 8, backgroundColor: '#F1F5F9' }}
-                                                        resizeMode="cover"
-                                                    />
-                                                </Pressable>
-                                            ))}
+                                            {(() => {
+                                                let images: string[] = [];
+                                                if (Array.isArray(mail.extra_images)) {
+                                                    images = mail.extra_images;
+                                                } else if (typeof mail.extra_images === 'string') {
+                                                    try {
+                                                        const parsed = JSON.parse(mail.extra_images);
+                                                        if (Array.isArray(parsed)) images = parsed;
+                                                    } catch (e) { }
+                                                }
+                                                return images.map((img: string, idx: number) => (
+                                                    <Pressable key={idx} onPress={() => setSelectedFullImage(img)}>
+                                                        <Image
+                                                            source={{ uri: img }}
+                                                            style={{ width: 100, height: 130, borderRadius: 8, backgroundColor: '#F1F5F9' }}
+                                                            resizeMode="cover"
+                                                        />
+                                                    </Pressable>
+                                                ));
+                                            })()}
                                         </View>
                                     </ScrollView>
                                 </View>
