@@ -1,0 +1,16 @@
+{
+    "name": "포스트노티",
+    "short_name": "포스트노티",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#4F46E5",
+    "icons": [
+        {
+            "src": "/favicon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ],
+    "gcm_sender_id": "103953800507"
+}
