@@ -1,7 +1,11 @@
 {
-    "buildCommand": "npm run build:web",
+    "buildCommand": "npm run build:web && cp public/firebase-messaging-sw.js dist/",
     "outputDirectory": "dist",
     "rewrites": [
+        {
+            "source": "/firebase-messaging-sw.js",
+            "destination": "/firebase-messaging-sw.js"
+        },
         {
             "source": "/(.*)",
             "destination": "/index.html"

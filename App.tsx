@@ -17,7 +17,7 @@ import { TenantDashboard } from './src/components/tenant/TenantDashboard';
 const Stack = createNativeStackNavigator();
 
 function AppContent() {
-  const { isInitializing, mode, brandingCompany, expoPushToken, setMode } = useAppContent();
+  const { isInitializing, mode, brandingCompany, expoPushToken, webPushToken, setMode } = useAppContent();
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
   // Sync 'mode' from Context to Navigation (for Deep Linking support)
@@ -58,6 +58,7 @@ function AppContent() {
         companyId={brandingCompany.id}
         companyName={brandingCompany.name}
         pushToken={expoPushToken}
+        webPushToken={webPushToken}
         onBack={() => {
           setMode('landing');
           navigation.popToTop();

@@ -16,10 +16,11 @@ type Props = {
     companyId: string;
     companyName: string;
     pushToken?: string;
+    webPushToken?: string;
     onBack: () => void;
 };
 
-export const TenantDashboard = ({ companyId, companyName, pushToken, onBack }: Props) => {
+export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToken, onBack }: Props) => {
     const [name, setName] = useState('');
     const [phoneSuffix, setPhoneSuffix] = useState('');
     const [myProfile, setMyProfile] = useState<Profile | null>(null);
@@ -146,6 +147,13 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, onBack }: P
         };
     }, [myProfile?.id]);
 
+    // Web Push Sync Effect
+    useEffect(() => {
+        if (myProfile?.id && webPushToken) {
+            profilesService.updateProfile(myProfile.id, { web_push_token: webPushToken });
+        }
+    }, [myProfile?.id, webPushToken]);
+
     const handleInstallPrompt = async () => {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
@@ -209,10 +217,9 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, onBack }: P
             }
             if (profile.id && pushToken) {
                 await profilesService.updateProfile(profile.id, { push_token: pushToken });
-            } else if (profile.id && !pushToken) {
-                // 개발 중 디버깅: 토큰이 없음을 알림
-                console.log('Push token missing');
-                Alert.alert('알림 설정 확인', '푸시 알림 토큰을 받아오지 못했습니다. 앱 설정을 확인해주세요.');
+            }
+            if (profile.id && webPushToken) {
+                await profilesService.updateProfile(profile.id, { web_push_token: webPushToken });
             }
 
             // 로그인 성공 시 저장

@@ -14,6 +14,8 @@ import { recognizeText, MailType, classifyMail, preprocessImage as ocrPreprocess
 
 // Utils
 import { registerForPushNotificationsAsync } from '../utils/notificationHelper';
+import { messaging, getToken, VAPID_KEY } from '../lib/firebase';
+import { Platform } from 'react-native';
 
 export type AppMode = 'landing' | 'admin_login' | 'admin_branch_select' | 'admin_dashboard' | 'admin_register_mail' | 'tenant_login' | 'tenant_dashboard';
 
@@ -23,6 +25,7 @@ interface AppContextType {
     setMode: (mode: AppMode) => void;
     isInitializing: boolean;
     expoPushToken: string;
+    webPushToken: string;
     brandingCompany: Company | null;
     setBrandingCompany: (comp: Company | null) => void;
 
@@ -91,6 +94,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [brandingCompany, setBrandingCompany] = useState<Company | null>(null);
     const [isInitializing, setIsInitializing] = useState(true);
     const [expoPushToken, setExpoPushToken] = useState('');
+    const [webPushToken, setWebPushToken] = useState('');
 
     // Admin Data
     const [companies, setCompanies] = useState<Company[]>([]);
@@ -143,8 +147,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             await loadData();
 
             // 2. Register Push
-            const token = await registerForPushNotificationsAsync();
-            if (token) setExpoPushToken(token);
+            if (Platform.OS === 'web') {
+                if (messaging) {
+                    try {
+                        const permission = await Notification.requestPermission();
+                        if (permission === 'granted') {
+                            const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+                            if (token) setWebPushToken(token);
+                        }
+                    } catch (e) {
+                        console.error("Web push registration failed", e);
+                    }
+                }
+            } else {
+                const token = await registerForPushNotificationsAsync();
+                if (token) setExpoPushToken(token);
+            }
 
             // 3. Deep Link Handling
             const handleDeepLink = async (url: string | null) => {
@@ -364,6 +382,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 });
             }
 
+            // --- Web Push (Firebase) ---
+            if (matchedProfile.web_push_token) {
+                // 이 부분은 보안상 서버 사이드(Edge Function)에서 처리하는 것이 좋지만, 
+                // 일단 테스트를 위해 직접 호출을 시도하거나 구조를 잡아둡니다.
+                // 참고: Firebase Admin SDK가 필요할 수 있으므로, 실제 운영 어드민 패널에서 처리 권장.
+                console.log("Web push should be sent to:", matchedProfile.web_push_token);
+            }
+
             Alert.alert('완료', `${matchedProfile.name}님께 알림을 보냈습니다.`);
 
             const m = await mailService.getMailsByCompany(selectedCompany.id);
@@ -389,6 +415,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 mode, setMode,
                 isInitializing,
                 expoPushToken,
+                webPushToken,
                 brandingCompany, setBrandingCompany,
                 companies, selectedCompany, setSelectedCompany,
                 profiles, setProfiles,
