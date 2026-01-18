@@ -623,18 +623,11 @@ export const TenantDashboard = ({ companyId, companyName, pushToken, webPushToke
 
             {/* 이미지 확대 모달 */}
             <Modal
+                // Android Back Button safety handled by main useEffect
                 visible={!!selectedMailImage}
                 transparent={true}
                 animationType="fade"
                 onRequestClose={() => setSelectedMailImage(null)}
-                // Android Back Button safety
-                onShow={() => {
-                    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-                        setSelectedMailImage(null);
-                        return true;
-                    });
-                    return () => subscription.remove();
-                }}
             >
                 <View style={styles.modalContainer}>
                     <Pressable style={styles.closeButton} onPress={() => setSelectedMailImage(null)}>

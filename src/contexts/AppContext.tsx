@@ -1,17 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Alert, BackHandler } from 'react-native';
-import * as Linking from 'expo-linking';
-import * as ImagePicker from 'expo-image-picker';
-import * as Clipboard from 'expo-clipboard';
-import { supabase } from '../lib/supabase';
-
-// Services
-import { companiesService, Company } from '../services/companiesService';
-import { profilesService, Profile } from '../services/profilesService';
-import { mailService } from '../services/mailService';
-import { masterSendersService } from '../services/masterSendersService';
-import { recognizeText, MailType, classifyMail, preprocessImage as ocrPreprocess } from '../services/ocrService';
-
 // Utils
 import { registerForPushNotificationsAsync } from '../utils/notificationHelper';
 import { messaging, getToken, VAPID_KEY } from '../lib/firebase';
@@ -313,13 +301,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         try {
             setOcrLoading(true);
+
+            // Upload images to Supabase Storage
+            let uploadedMainImage = '';
+            if (selectedImage) {
+                const uploaded = await storageService.uploadImage(selectedImage);
+                if (uploaded) uploadedMainImage = uploaded;
+            }
+
+            const uploadedExtraImages: string[] = [];
+            if (extraImages && extraImages.length > 0) {
+                const results = await Promise.all(extraImages.map(img => storageService.uploadImage(img)));
+                results.forEach(url => {
+                    if (url) uploadedExtraImages.push(url);
+                });
+            }
+
             await mailService.registerMail(
                 selectedCompany.id,
                 matchedProfile.id!,
                 detectedMailType,
                 detectedSender,
-                selectedImage || '',
-                extraImages
+                uploadedMainImage,
+                uploadedExtraImages
             );
 
             // Background notification task
